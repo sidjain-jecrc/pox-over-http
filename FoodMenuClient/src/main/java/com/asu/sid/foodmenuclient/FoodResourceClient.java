@@ -11,10 +11,8 @@ import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import java.util.logging.Logger;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -22,7 +20,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FoodResourceClient {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FoodResourceClient.class);
+    private static final Logger LOG = Logger.getLogger(FoodResourceClient.class.getName());
 
     private WebResource webResource = null;
     private Client client;
@@ -35,7 +33,7 @@ public class FoodResourceClient {
         client = Client.create(config);
 
         webResource = client.resource(BASE_URI).path("inventory");
-        LOG.debug("webResource = {}", webResource.getURI());
+        LOG.info("webResource = {" + webResource.getURI() + " }");
     }
 
     public String addOrGetFoodItem(String foodItem) throws UniformInterfaceException {

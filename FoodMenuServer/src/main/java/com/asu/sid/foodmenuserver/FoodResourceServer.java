@@ -51,6 +51,7 @@ public class FoodResourceServer {
     @Produces(MediaType.APPLICATION_XML)
     @Consumes(MediaType.APPLICATION_XML)
     public Response addOrGetFoodItem(String foodItem) {
+        
         LOG.info("Adding food item");
         LOG.info("Request Content = {}" + foodItem);
 
@@ -63,7 +64,7 @@ public class FoodResourceServer {
             String xmlNamespace = document.getDocumentElement().getAttribute("xmlns");
             LOG.info("Root attribute: " + xmlNamespace);
 
-            if (root == null || !root.equals(ADD_FOOD) || !root.equals(GET_FOOD) || xmlNamespace == null || !XML_NAMESPACE.equalsIgnoreCase(XML_NAMESPACE)) {
+            if (xmlNamespace == null || !XML_NAMESPACE.equalsIgnoreCase(xmlNamespace)) {
                 responseXmlString = "<InvalidMessage xmlns=”http://cse564.asu.edu/PoxAssignment”/>";
             }
 

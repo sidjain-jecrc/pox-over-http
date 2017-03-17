@@ -43,7 +43,9 @@ public class FoodResourceClient {
         if (response.getStatus() != 200) {
             throw new RuntimeException("Failed : HTTP error code : " + response.getStatus());
         } else{
-            result = response.toString();
+            if(response.hasEntity()){
+               result = response.getEntity(String.class);
+            }
         }
         return result;
     }

@@ -6,35 +6,49 @@
 package com.asu.sid.beans;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlType;
 
 /**
  *
  * @author Siddharth
  */
+@XmlType(propOrder = { "id", "name", "description", "category", "price"})
 public class FoodItem {
 
+    String country;
     int id;
     String name;
     String description;
     String category;
-    String country;
     float price;
+
+    public FoodItem() {
+
+    }
+
+    public FoodItem(int id, String name, String description, String category, String country, float price) {
+        super();
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.category = category;
+        this.country = country;
+        this.price = price;
+    }
 
     public int getId() {
         return id;
     }
 
+    @XmlAttribute(name = "country")
     public String getCountry() {
         return country;
     }
 
-    @XmlAttribute
     public void setCountry(String country) {
         this.country = country;
     }
 
-    @XmlElement
     public void setId(int id) {
         this.id = id;
     }
@@ -43,7 +57,6 @@ public class FoodItem {
         return name;
     }
 
-    @XmlElement
     public void setName(String name) {
         this.name = name;
     }
@@ -52,7 +65,6 @@ public class FoodItem {
         return description;
     }
 
-    @XmlElement
     public void setDescription(String description) {
         this.description = description;
     }
@@ -61,7 +73,6 @@ public class FoodItem {
         return category;
     }
 
-    @XmlElement
     public void setCategory(String category) {
         this.category = category;
     }
@@ -70,7 +81,6 @@ public class FoodItem {
         return price;
     }
 
-    @XmlElement
     public void setPrice(float price) {
         this.price = price;
     }

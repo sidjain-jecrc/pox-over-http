@@ -13,17 +13,26 @@ import javax.xml.bind.annotation.XmlRootElement;
  *
  * @author Siddharth
  */
-@XmlRootElement
+@XmlRootElement(name = "FoodItemData")
 public class FoodItemData {
 
-    List<FoodItem> FoodItems;
+    private List<FoodItem> foodItems;
 
-    public List<FoodItem> getFoodItems() {
-        return FoodItems;
+    public FoodItemData() {
+
+    }
+
+    public FoodItemData(List<FoodItem> foodItems) {
+        this.foodItems = foodItems;
     }
 
     @XmlElement(name = "FoodItem")
-    public void setFoodItems(List<FoodItem> FoodItems) {
-        this.FoodItems = FoodItems;
+    public List<FoodItem> getFoodItems() {
+        return foodItems;
     }
+
+    public void setFoodItems(List<FoodItem> foodItems) {
+        this.foodItems = foodItems;
+    }
+
 }

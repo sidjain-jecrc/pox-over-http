@@ -112,10 +112,7 @@ public class MainClass {
 
                 } else if ("get".equalsIgnoreCase(choice)) {
 
-                } else {
-                    // wrong input message
-
-                }
+                } 
             }
         } catch (IOException e) {
             e.printStackTrace();

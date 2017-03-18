@@ -52,67 +52,93 @@ public class MainClass {
 
                 // Add food item choice
                 if ("add".equalsIgnoreCase(choice)) {
-                    
-                    System.out.println("How many items do you want to add: ");
-                    int itemToAdd = Integer.valueOf(br.readLine());
 
                     // create request string once the user has entered choice and food item information
                     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
                     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
-                    // root element
-                    Document foodDoc = docBuilder.newDocument();
-                    Element rootElement = foodDoc.createElement("NewFoodItems");
-                    foodDoc.appendChild(rootElement);
+                    // creating root element for new food items request
+                    Document addFoodDoc = docBuilder.newDocument();
+                    Element rootElement = addFoodDoc.createElement("NewFoodItems");
+                    addFoodDoc.appendChild(rootElement);
                     rootElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
 
-                    for (int index = 0; index < itemToAdd; index++) {
+                    System.out.print("Country: ");
+                    country = br.readLine();
+                    System.out.print("Name: ");
+                    name = br.readLine();
+                    System.out.print("Description: ");
+                    desciption = br.readLine();
+                    System.out.print("Category: ");
+                    category = br.readLine();
+                    System.out.print("Price: ");
+                    price = br.readLine();
 
-                        System.out.println("Country: ");
-                        country = br.readLine();
-                        System.out.println("Name: ");
-                        name = br.readLine();
-                        System.out.println("Description: ");
-                        desciption = br.readLine();
-                        System.out.println("Category: ");
-                        category = br.readLine();
-                        System.out.println("Price: ");
-                        price = br.readLine();
+                    Element foodItem = addFoodDoc.createElement("FoodItem");
+                    rootElement.appendChild(foodItem);
+                    foodItem.setAttribute("country", country);
 
-                        Element foodItem = foodDoc.createElement("FoodItem");
-                        rootElement.appendChild(foodItem);
-                        foodItem.setAttribute("country", country);
+                    Element foodName = addFoodDoc.createElement("name");
+                    foodName.appendChild(addFoodDoc.createTextNode(name));
+                    foodItem.appendChild(foodName);
 
-                        Element foodName = foodDoc.createElement("name");
-                        foodName.appendChild(foodDoc.createTextNode(name));
-                        foodItem.appendChild(foodName);
+                    Element foodDesc = addFoodDoc.createElement("description");
+                    foodDesc.appendChild(addFoodDoc.createTextNode(desciption));
+                    foodItem.appendChild(foodDesc);
 
-                        Element foodDesc = foodDoc.createElement("description");
-                        foodDesc.appendChild(foodDoc.createTextNode(desciption));
-                        foodItem.appendChild(foodDesc);
+                    Element foodCategory = addFoodDoc.createElement("category");
+                    foodCategory.appendChild(addFoodDoc.createTextNode(category));
+                    foodItem.appendChild(foodCategory);
 
-                        Element foodCategory = foodDoc.createElement("category");
-                        foodCategory.appendChild(foodDoc.createTextNode(category));
-                        foodItem.appendChild(foodCategory);
+                    Element foodPrice = addFoodDoc.createElement("price");
+                    foodPrice.appendChild(addFoodDoc.createTextNode(price));
+                    foodItem.appendChild(foodPrice);
 
-                        Element foodPrice = foodDoc.createElement("price");
-                        foodPrice.appendChild(foodDoc.createTextNode(price));
-                        foodItem.appendChild(foodPrice);
+                    requestXML = xmlDocToStringConverter(addFoodDoc);
+                    System.out.println(requestXML);
 
+                    // sending the request through food resource client
+                    FoodResourceClient foodClient = new FoodResourceClient();
+                    String responseMessage = foodClient.addOrGetFoodItem(requestXML);
+                    System.out.println("Response is: " + responseMessage);
+
+                } else if ("get".equalsIgnoreCase(choice)) {
+
+                    System.out.println("How many items do you want to retrieve: ");
+                    int itemToGet = Integer.valueOf(br.readLine());
+
+                    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+
+                    // creating root element for new food items request
+                    Document getFoodDoc = docBuilder.newDocument();
+                    Element rootElement = getFoodDoc.createElement("SelectedFoodItems");
+                    getFoodDoc.appendChild(rootElement);
+                    rootElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
+
+                    for (int index = 0; index < itemToGet; index++) {
+                        System.out.print("Enter food item id: ");
+                        String foodID = br.readLine();
+
+                        Element foodItemId = getFoodDoc.createElement("FoodItemId");
+                        foodItemId.appendChild(getFoodDoc.createTextNode(foodID));
+                        rootElement.appendChild(foodItemId);
                     }
-                    
-                    requestXML = xmlDocToStringConverter(foodDoc);
+
+                    requestXML = xmlDocToStringConverter(getFoodDoc);
                     System.out.println(requestXML);
 
                     // sending the request through food resource client
                     FoodResourceClient foodClient = new FoodResourceClient();
                     String responseMessage = foodClient.addOrGetFoodItem(requestXML);
                     System.out.println("The message is " + responseMessage);
+                }
+
+                System.out.println("Would you like to exit (Y|N): ");
+                String exitChoice = br.readLine();
+                if (exitChoice.equalsIgnoreCase("Y") || exitChoice.equalsIgnoreCase("Yes")) {
                     break;
-
-                } else if ("get".equalsIgnoreCase(choice)) {
-
-                } 
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();

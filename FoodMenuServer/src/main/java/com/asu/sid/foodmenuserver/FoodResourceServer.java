@@ -9,6 +9,8 @@ import com.asu.sid.beans.FoodItem;
 import com.asu.sid.beans.FoodItemAdded;
 import com.asu.sid.beans.FoodItemData;
 import com.asu.sid.beans.FoodItemExists;
+import com.asu.sid.beans.InvalidFoodItem;
+import com.asu.sid.beans.RetrievedFoodItems;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
@@ -124,20 +126,6 @@ public class FoodResourceServer {
                                 existsMarshall.marshal(foodExists, foodExistsWriter);
                                 responseXmlString = foodExistsWriter.toString();
                                 LOG.info(foodExistsWriter.toString());
-
-                                // create an FoodItemExists xml
-//                                DocumentBuilder existBuilder = getDocBuilderInstance();
-//                                Document foodExistsDoc = existBuilder.newDocument();
-//
-//                                Element itemExistsElement = foodExistsDoc.createElement("FoodItemExists");
-//                                itemExistsElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
-//                                foodExistsDoc.appendChild(itemExistsElement);
-//
-//                                Element idElement = foodExistsDoc.createElement("FoodItemId");
-//                                idElement.appendChild(foodExistsDoc.createTextNode(localFoodId));
-//                                itemExistsElement.appendChild(idElement);
-//
-//                                responseXmlString = getStringOfXmlDoc(foodExistsDoc);
                             }
                             // logic to keep track of the max id added to list
                             int id = Integer.valueOf(localFoodId);
@@ -180,7 +168,7 @@ public class FoodResourceServer {
                             List<Integer> addedFoodList = new ArrayList<>();
                             addedFoodList.add(nextIdToAdd);
                             foodAdded.setFoodItemId(addedFoodList);
-                            
+
                             JAXBContext existsContext = JAXBContext.newInstance(FoodItemAdded.class);
                             Marshaller existsMarshall = existsContext.createMarshaller();
                             existsMarshall.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
@@ -190,20 +178,6 @@ public class FoodResourceServer {
                             existsMarshall.marshal(foodAdded, foodAddedWriter);
                             responseXmlString = foodAddedWriter.toString();
                             LOG.info(foodAddedWriter.toString());
-
-                            // creating food item added response xml
-//                            DocumentBuilder newAddedBuilder = getDocBuilderInstance();
-//                            Document foodAddedDoc = newAddedBuilder.newDocument();
-//
-//                            Element itemAddedElement = foodAddedDoc.createElement("FoodItemAdded");
-//                            itemAddedElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
-//                            foodAddedDoc.appendChild(itemAddedElement);
-//
-//                            Element idElement = foodAddedDoc.createElement("FoodItemId");
-//                            idElement.appendChild(foodAddedDoc.createTextNode(String.valueOf(nextIdToAdd)));
-//                            itemAddedElement.appendChild(idElement);
-//
-//                            responseXmlString = getStringOfXmlDoc(foodAddedDoc);
                             LOG.info("Food item added");
                         }
 
@@ -220,16 +194,14 @@ public class FoodResourceServer {
 
                 // parse the stored xml file to check if the food item exists or not
                 FoodItemData foodItemData = (FoodItemData) jaxbUnmarshaller.unmarshal(foodXmlFile);
-                List<FoodItem> foodItems = foodItemData.getFoodItems();
+                List<FoodItem> localFoodItems = foodItemData.getFoodItems();
                 LOG.info("Done with unmarshalling");
 
-                // creating retrieved food items response xml
-                DocumentBuilder getFoodDocBuilder = getDocBuilderInstance();
-                Document retrievedFoodDoc = getFoodDocBuilder.newDocument();
-
-                Element retrievedFoodRoot = retrievedFoodDoc.createElement("RetrievedFoodItems");
-                retrievedFoodRoot.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
-                retrievedFoodDoc.appendChild(retrievedFoodRoot);
+                // creating RetrievedFoodItems object and marshalling it in string
+                RetrievedFoodItems retrievedFoodItems = new RetrievedFoodItems();
+                List<FoodItem> validFoodItems = new ArrayList<>();
+                InvalidFoodItem invalidFoodItems = new InvalidFoodItem();
+                List<Integer> invalidFoodIdList = new ArrayList<>();
 
                 LOG.info("iterating over requested food items");
                 NodeList reqFoodItems = reqDocument.getElementsByTagName("FoodItemId");
@@ -248,52 +220,47 @@ public class FoodResourceServer {
                         }
 
                         // iterating over all existing food items to check whether requested item exists or not
-                        for (FoodItem food : foodItems) {
+                        for (FoodItem food : localFoodItems) {
                             int localFoodId = food.getId();
+
                             if (localFoodId == reqFoodId) {
                                 LOG.info("Constructing retrieved food xml for food id: " + reqFoodId);
                                 doesFoodItemExists = true;
 
-                                Element retrievedFoodItem = retrievedFoodDoc.createElement("FoodItem");
-                                retrievedFoodRoot.appendChild(retrievedFoodItem);
-                                retrievedFoodItem.setAttribute("country", food.getCountry());
-
-                                Element retrievedFoodId = retrievedFoodDoc.createElement("id");
-                                retrievedFoodId.appendChild(retrievedFoodDoc.createTextNode(String.valueOf(reqFoodId)));
-                                retrievedFoodItem.appendChild(retrievedFoodId);
-
-                                Element foodName = retrievedFoodDoc.createElement("name");
-                                foodName.appendChild(retrievedFoodDoc.createTextNode(food.getName()));
-                                retrievedFoodItem.appendChild(foodName);
-
-                                Element foodDesc = retrievedFoodDoc.createElement("description");
-                                foodDesc.appendChild(retrievedFoodDoc.createTextNode(food.getDescription()));
-                                retrievedFoodItem.appendChild(foodDesc);
-
-                                Element foodCategory = retrievedFoodDoc.createElement("category");
-                                foodCategory.appendChild(retrievedFoodDoc.createTextNode(food.getCategory()));
-                                retrievedFoodItem.appendChild(foodCategory);
-
-                                Element foodPrice = retrievedFoodDoc.createElement("price");
-                                foodPrice.appendChild(retrievedFoodDoc.createTextNode(String.valueOf(food.getPrice())));
-                                retrievedFoodItem.appendChild(foodPrice);
+                                // constructing FoodItem object
+                                FoodItem foodToRetrieve = new FoodItem();
+                                foodToRetrieve.setCountry(food.getCountry());
+                                foodToRetrieve.setId(food.getId());
+                                foodToRetrieve.setName(food.getName());
+                                foodToRetrieve.setDescription(food.getDescription());
+                                foodToRetrieve.setCategory(food.getCategory());
+                                foodToRetrieve.setPrice(food.getPrice());
+                                validFoodItems.add(foodToRetrieve);
                             }
                         }
                         // if a food item does not exist, creating invalid food item xml response
                         if (!doesFoodItemExists) {
                             LOG.info("Constructing invalid food item xml");
-                            Element invalidFoodItem = retrievedFoodDoc.createElement("InvalidFoodItem");
-                            retrievedFoodRoot.appendChild(invalidFoodItem);
-
-                            Element invalidFoodId = retrievedFoodDoc.createElement("FoodItemId");
-                            invalidFoodId.appendChild(retrievedFoodDoc.createTextNode(String.valueOf(reqFoodId)));
-                            invalidFoodItem.appendChild(invalidFoodId);
+                            invalidFoodIdList.add(reqFoodId);
                         }
                     }
+                    invalidFoodItems.setFoodItemId(invalidFoodIdList);
+                    retrievedFoodItems.setFoodItems(validFoodItems);
+                    retrievedFoodItems.setInvalidFoodItem(invalidFoodItems);
+
+                    JAXBContext retrievedContext = JAXBContext.newInstance(RetrievedFoodItems.class);
+                    Marshaller retrievedMarshall = retrievedContext.createMarshaller();
+                    retrievedMarshall.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+
+                    // Write to String
+                    StringWriter retrievedFoodWriter = new StringWriter();
+                    retrievedMarshall.marshal(retrievedFoodItems, retrievedFoodWriter);
+                    responseXmlString = retrievedFoodWriter.toString();
+                    LOG.info(retrievedFoodWriter.toString());
+
                 } else {
                     responseXmlString = INVALID_REQ_RESPONSE;
                 }
-                responseXmlString = getStringOfXmlDoc(retrievedFoodDoc);
             }
         } catch (SAXException | IOException | JAXBException | DOMException | NumberFormatException e) {
             LOG.info("Inside general exception catch block");

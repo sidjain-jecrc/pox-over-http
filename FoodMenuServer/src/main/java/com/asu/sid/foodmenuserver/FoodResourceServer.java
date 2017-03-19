@@ -55,7 +55,7 @@ public class FoodResourceServer {
     private static String responseXmlString = null;
 
     public FoodResourceServer() {
-        LOG.info("Creating a FoodResource Resource");
+        LOG.info("Creating a FoodResource Server Instance");
     }
 
     @POST
@@ -63,13 +63,13 @@ public class FoodResourceServer {
     @Consumes(MediaType.APPLICATION_XML)
     public Response addOrGetFoodItem(String foodItem) {
 
-        boolean isValid = true;
         try {
             DocumentBuilder builder = getDocBuilderInstance();
             Document reqDocument = builder.parse(new InputSource(new StringReader(foodItem)));
             reqDocument.getDocumentElement().normalize();
             String root = reqDocument.getDocumentElement().getNodeName();
             String xmlNamespace = reqDocument.getDocumentElement().getAttribute("xmlns");
+            LOG.log(Level.INFO, "Root element: {0}, Xml: {1}", new Object[]{root, xmlNamespace});
 
             // parse the stored xml file to check if the food item is already added or whether it exists
             ClassLoader classLoader = getClass().getClassLoader();
@@ -78,21 +78,21 @@ public class FoodResourceServer {
             JAXBContext jaxbContext = JAXBContext.newInstance(FoodItemData.class);
             Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 
-            if (!XML_NAMESPACE.equalsIgnoreCase(xmlNamespace)) {
-                LOG.info("XML Namespace not equal");
-                responseXmlString = INVALID_REQ_RESPONSE;
-                isValid = false;
-
-            } else if (root.equals(ADD_FOOD) && isValid) {
+            if (root.equals(ADD_FOOD)) {
                 LOG.info("Add food section");
                 boolean doesFoodExists = false;
-                
-                Element reqFoodElement = (Element) reqDocument.getElementsByTagName("FoodItem");
-                String reqCountry = reqFoodElement.getAttribute("country");
-                String reqFoodName = reqFoodElement.getElementsByTagName("name").item(0).getTextContent();
-                String reqFoodDesc = reqFoodElement.getElementsByTagName("description").item(0).getTextContent();
-                String reqFoodCategory = reqFoodElement.getElementsByTagName("category").item(0).getTextContent();
-                float reqPrice = Float.valueOf(reqFoodElement.getElementsByTagName("price").item(0).getTextContent());
+
+                NodeList reqFoodList = reqDocument.getElementsByTagName("FoodItem");
+                if (reqFoodList.getLength() < 1) {
+                    responseXmlString = INVALID_REQ_RESPONSE;
+                }
+
+                Element reqFoodItem = (Element) reqFoodList.item(0);
+                String reqCountry = reqFoodItem.getAttribute("country");
+                String reqFoodName = reqFoodItem.getElementsByTagName("name").item(0).getTextContent();
+                String reqFoodDesc = reqFoodItem.getElementsByTagName("description").item(0).getTextContent();
+                String reqFoodCategory = reqFoodItem.getElementsByTagName("category").item(0).getTextContent();
+                float reqPrice = Float.valueOf(reqFoodItem.getElementsByTagName("price").item(0).getTextContent());
 
                 try {
                     String itemId = null;
@@ -102,7 +102,6 @@ public class FoodResourceServer {
 
                     // iterating over all food items in xml reqDocument
                     for (FoodItem food : foodItems) {
-                        LOG.info("Iterating over all food items");
 
                         itemId = String.valueOf(food.getId());
                         String localFoodName = food.getName();
@@ -135,26 +134,30 @@ public class FoodResourceServer {
                     }
 
                     LOG.log(Level.INFO, "Max food item id: {0}", maxId);
-                    int foodIdToAdd = maxId + 1;
+                    int nextIdToAdd = maxId + 1;
+
                     // if given food item doesn't exist in the xml reqDocument adding it to xml
-                    if (!doesFoodExists && isValid) {
+                    if (!doesFoodExists) {
                         LOG.info("Food item does not exist");
 
                         FoodItem newItem = new FoodItem();
-                        newItem.setId(foodIdToAdd);
+                        newItem.setId(nextIdToAdd);
                         newItem.setCountry(reqCountry);
                         newItem.setName(reqFoodName);
                         newItem.setDescription(reqFoodDesc);
+                        newItem.setCategory(reqFoodCategory);
                         newItem.setPrice(reqPrice);
                         foodItems.add(newItem);
                         foodItemData.setFoodItems(foodItems);
 
                         // create JAXB context and instantiate marshaller
-                        JAXBContext context = JAXBContext.newInstance(FoodItemData.class);
-                        Marshaller m = context.createMarshaller();
+                        Marshaller m = jaxbContext.createMarshaller();
                         m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
-                        LOG.info("xml file path: " + foodXmlFile.getAbsolutePath());
+                        // Write to String
+                        StringWriter stringWriter = new StringWriter();
+                        m.marshal(foodItemData, stringWriter);
+                        LOG.info(stringWriter.toString());
 
                         // Write to File
                         m.marshal(foodItemData, new File(foodXmlFile.getAbsolutePath()));
@@ -168,7 +171,7 @@ public class FoodResourceServer {
                         foodAddedDoc.appendChild(itemAddedElement);
 
                         Element idElement = foodAddedDoc.createElement("FoodItemId");
-                        idElement.appendChild(foodAddedDoc.createTextNode(String.valueOf(foodIdToAdd)));
+                        idElement.appendChild(foodAddedDoc.createTextNode(String.valueOf(nextIdToAdd)));
                         itemAddedElement.appendChild(idElement);
 
                         responseXmlString = getStringOfXmlDoc(foodAddedDoc);
@@ -180,7 +183,7 @@ public class FoodResourceServer {
                     responseXmlString = INVALID_REQ_RESPONSE;
                 }
 
-            } else if (root.equals(GET_FOOD) && isValid) {
+            } else if (root.equals(GET_FOOD)) {
                 LOG.info("Get food section");
 
                 // parse the stored xml file to check if the food item exists or not
@@ -196,73 +199,69 @@ public class FoodResourceServer {
                 retrievedFoodRoot.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
                 retrievedFoodDoc.appendChild(retrievedFoodRoot);
 
-                try {
-                    LOG.info("iterating over requested food items");
-                    NodeList reqFoodItems = reqDocument.getElementsByTagName("FoodItemId");
-                    if (reqFoodItems != null && reqFoodItems.getLength() > 0) {
-                        // iterating over all requested food items
-                        for (int index = 0; index < reqFoodItems.getLength(); index++) {
-                            boolean doesFoodItemExists = false;
-                            Element reqFoodIdElement = (Element) reqFoodItems.item(index);
-                            NodeList subList = reqFoodIdElement.getChildNodes();
-                            int reqFoodId = 0;
-                            if (subList != null && subList.getLength() > 0) {
-                                reqFoodId = Integer.valueOf(subList.item(0).getNodeValue());
-                            }
+                LOG.info("iterating over requested food items");
+                NodeList reqFoodItems = reqDocument.getElementsByTagName("FoodItemId");
+                if (reqFoodItems != null && reqFoodItems.getLength() > 0) {
+                    // iterating over all requested food items
+                    for (int index = 0; index < reqFoodItems.getLength(); index++) {
+                        boolean doesFoodItemExists = false;
+                        Element reqFoodIdElement = (Element) reqFoodItems.item(index);
+                        NodeList subList = reqFoodIdElement.getChildNodes();
+                        int reqFoodId = 0;
+                        if (subList != null && subList.getLength() > 0) {
+                            reqFoodId = Integer.valueOf(subList.item(0).getNodeValue());
+                        } else {
+                            responseXmlString = INVALID_REQ_RESPONSE;
+                            break;
+                        }
 
-                            // iterating over all existing food items to check whether requested item exists or not
-                            for (FoodItem food : foodItems) {
-                                int localFoodId = food.getId();
-                                if (localFoodId == reqFoodId) {
-                                    LOG.info("Constructing retrieved food xml for food id: " + reqFoodId);
-                                    doesFoodItemExists = true;
+                        // iterating over all existing food items to check whether requested item exists or not
+                        for (FoodItem food : foodItems) {
+                            int localFoodId = food.getId();
+                            if (localFoodId == reqFoodId) {
+                                LOG.info("Constructing retrieved food xml for food id: " + reqFoodId);
+                                doesFoodItemExists = true;
 
-                                    Element retrievedFoodItem = retrievedFoodDoc.createElement("FoodItem");
-                                    retrievedFoodRoot.appendChild(retrievedFoodItem);
-                                    retrievedFoodItem.setAttribute("country", food.getCountry());
+                                Element retrievedFoodItem = retrievedFoodDoc.createElement("FoodItem");
+                                retrievedFoodRoot.appendChild(retrievedFoodItem);
+                                retrievedFoodItem.setAttribute("country", food.getCountry());
 
-                                    Element retrievedFoodId = retrievedFoodDoc.createElement("id");
-                                    retrievedFoodId.appendChild(retrievedFoodDoc.createTextNode(String.valueOf(reqFoodId)));
-                                    retrievedFoodItem.appendChild(retrievedFoodId);
+                                Element retrievedFoodId = retrievedFoodDoc.createElement("id");
+                                retrievedFoodId.appendChild(retrievedFoodDoc.createTextNode(String.valueOf(reqFoodId)));
+                                retrievedFoodItem.appendChild(retrievedFoodId);
 
-                                    Element foodName = retrievedFoodDoc.createElement("name");
-                                    foodName.appendChild(retrievedFoodDoc.createTextNode(food.getName()));
-                                    retrievedFoodItem.appendChild(foodName);
+                                Element foodName = retrievedFoodDoc.createElement("name");
+                                foodName.appendChild(retrievedFoodDoc.createTextNode(food.getName()));
+                                retrievedFoodItem.appendChild(foodName);
 
-                                    Element foodDesc = retrievedFoodDoc.createElement("description");
-                                    foodDesc.appendChild(retrievedFoodDoc.createTextNode(food.getDescription()));
-                                    retrievedFoodItem.appendChild(foodDesc);
+                                Element foodDesc = retrievedFoodDoc.createElement("description");
+                                foodDesc.appendChild(retrievedFoodDoc.createTextNode(food.getDescription()));
+                                retrievedFoodItem.appendChild(foodDesc);
 
-                                    Element foodCategory = retrievedFoodDoc.createElement("category");
-                                    foodCategory.appendChild(retrievedFoodDoc.createTextNode(food.getCategory()));
-                                    retrievedFoodItem.appendChild(foodCategory);
+                                Element foodCategory = retrievedFoodDoc.createElement("category");
+                                foodCategory.appendChild(retrievedFoodDoc.createTextNode(food.getCategory()));
+                                retrievedFoodItem.appendChild(foodCategory);
 
-                                    Element foodPrice = retrievedFoodDoc.createElement("price");
-                                    foodPrice.appendChild(retrievedFoodDoc.createTextNode(String.valueOf(food.getPrice())));
-                                    retrievedFoodItem.appendChild(foodPrice);
-                                }
-                            }
-                            // if a food item does not exist, creating invalid food item xml response
-                            if (!doesFoodItemExists) {
-                                LOG.info("Constructing invalid food item xml");
-                                Element invalidFoodItem = retrievedFoodDoc.createElement("InvalidFoodItem");
-                                retrievedFoodRoot.appendChild(invalidFoodItem);
-
-                                Element invalidFoodId = retrievedFoodDoc.createElement("FoodItemId");
-                                invalidFoodId.appendChild(retrievedFoodDoc.createTextNode(String.valueOf(reqFoodId)));
-                                invalidFoodItem.appendChild(invalidFoodId);
+                                Element foodPrice = retrievedFoodDoc.createElement("price");
+                                foodPrice.appendChild(retrievedFoodDoc.createTextNode(String.valueOf(food.getPrice())));
+                                retrievedFoodItem.appendChild(foodPrice);
                             }
                         }
-                    } else {
-                        responseXmlString = INVALID_REQ_RESPONSE;
-                    }
-                    responseXmlString = getStringOfXmlDoc(retrievedFoodDoc);
+                        // if a food item does not exist, creating invalid food item xml response
+                        if (!doesFoodItemExists) {
+                            LOG.info("Constructing invalid food item xml");
+                            Element invalidFoodItem = retrievedFoodDoc.createElement("InvalidFoodItem");
+                            retrievedFoodRoot.appendChild(invalidFoodItem);
 
-                } catch (NumberFormatException e) {
-                    LOG.info("Inside number format exception catch block");
-                    LOG.log(Level.SEVERE, e.getMessage());
+                            Element invalidFoodId = retrievedFoodDoc.createElement("FoodItemId");
+                            invalidFoodId.appendChild(retrievedFoodDoc.createTextNode(String.valueOf(reqFoodId)));
+                            invalidFoodItem.appendChild(invalidFoodId);
+                        }
+                    }
+                } else {
                     responseXmlString = INVALID_REQ_RESPONSE;
                 }
+                responseXmlString = getStringOfXmlDoc(retrievedFoodDoc);
             }
         } catch (SAXException | IOException | JAXBException | DOMException | NumberFormatException e) {
             LOG.info("Inside general exception catch block");

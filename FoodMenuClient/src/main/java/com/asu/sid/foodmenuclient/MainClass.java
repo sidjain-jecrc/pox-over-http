@@ -104,7 +104,7 @@ public class MainClass {
 
                 } else if ("get".equalsIgnoreCase(choice)) {
 
-                    System.out.println("How many items do you want to retrieve: ");
+                    System.out.print("How many items do you want to retrieve: ");
                     int itemToGet = Integer.valueOf(br.readLine());
 
                     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -134,14 +134,14 @@ public class MainClass {
                     System.out.println("The message is " + responseMessage);
                 }
 
-                System.out.println("Would you like to exit (Y|N): ");
+                System.out.println("Would you like to continue? (Y|N): ");
                 String exitChoice = br.readLine();
-                if (exitChoice.equalsIgnoreCase("Y") || exitChoice.equalsIgnoreCase("Yes")) {
+                if (exitChoice.equalsIgnoreCase("N") || exitChoice.equalsIgnoreCase("No")) {
                     break;
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+           System.out.println("IO Exception: " + e);
         } catch (ParserConfigurationException ex) {
             System.out.println("Parser exception: " + ex);
         } finally {

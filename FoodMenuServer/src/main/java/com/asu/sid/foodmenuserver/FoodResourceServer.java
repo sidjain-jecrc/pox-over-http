@@ -202,6 +202,7 @@ public class FoodResourceServer {
                 List<FoodItem> validFoodItems = new ArrayList<>();
                 InvalidFoodItem invalidFoodItems = new InvalidFoodItem();
                 List<Integer> invalidFoodIdList = new ArrayList<>();
+                boolean hasInvalidFoodId = false;
 
                 LOG.info("iterating over requested food items");
                 NodeList reqFoodItems = reqDocument.getElementsByTagName("FoodItemId");
@@ -241,12 +242,18 @@ public class FoodResourceServer {
                         // if a food item does not exist, creating invalid food item xml response
                         if (!doesFoodItemExists) {
                             LOG.info("Constructing invalid food item xml");
+                            hasInvalidFoodId = true;
                             invalidFoodIdList.add(reqFoodId);
                         }
                     }
-                    invalidFoodItems.setFoodItemId(invalidFoodIdList);
-                    retrievedFoodItems.setFoodItems(validFoodItems);
-                    retrievedFoodItems.setInvalidFoodItem(invalidFoodItems);
+                    if (!hasInvalidFoodId) {
+                        retrievedFoodItems.setFoodItems(validFoodItems);
+                        retrievedFoodItems.setInvalidFoodItem(null);
+                    } else {
+                        invalidFoodItems.setFoodItemId(invalidFoodIdList);
+                        retrievedFoodItems.setInvalidFoodItem(invalidFoodItems);
+                        retrievedFoodItems.setFoodItems(validFoodItems);                        
+                    }
 
                     JAXBContext retrievedContext = JAXBContext.newInstance(RetrievedFoodItems.class);
                     Marshaller retrievedMarshall = retrievedContext.createMarshaller();

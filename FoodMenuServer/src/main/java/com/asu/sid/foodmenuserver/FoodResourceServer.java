@@ -6,11 +6,14 @@
 package com.asu.sid.foodmenuserver;
 
 import com.asu.sid.beans.FoodItem;
+import com.asu.sid.beans.FoodItemAdded;
 import com.asu.sid.beans.FoodItemData;
+import com.asu.sid.beans.FoodItemExists;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -66,8 +69,7 @@ public class FoodResourceServer {
             DocumentBuilder builder = getDocBuilderInstance();
             Document reqDocument = builder.parse(new InputSource(new StringReader(foodItem)));
             reqDocument.getDocumentElement().normalize();
-            String root = reqDocument.getDocumentElement().getNodeName();
-            String xmlNamespace = reqDocument.getDocumentElement().getAttribute("xmlns");
+            String requestRoot = reqDocument.getDocumentElement().getNodeName();
 
             // parse the stored xml file to check if the food item is already added or whether it exists
             ClassLoader classLoader = getClass().getClassLoader();
@@ -76,7 +78,7 @@ public class FoodResourceServer {
             JAXBContext jaxbContext = JAXBContext.newInstance(FoodItemData.class);
             Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 
-            if (root.equals(ADD_FOOD)) {
+            if (requestRoot.equals(ADD_FOOD)) {
                 LOG.info("Add food section");
                 boolean doesFoodExists = false;
 
@@ -88,9 +90,9 @@ public class FoodResourceServer {
                     String reqFoodDesc = reqFoodItem.getElementsByTagName("description").item(0).getTextContent();
                     String reqFoodCategory = reqFoodItem.getElementsByTagName("category").item(0).getTextContent();
                     float reqPrice = Float.valueOf(reqFoodItem.getElementsByTagName("price").item(0).getTextContent());
-                    
+
                     try {
-                        String itemId = null;
+                        String localFoodId = null;
                         int maxId = 0;
                         FoodItemData foodItemData = (FoodItemData) jaxbUnmarshaller.unmarshal(foodXmlFile);
                         List<FoodItem> foodItems = foodItemData.getFoodItems();
@@ -98,7 +100,7 @@ public class FoodResourceServer {
                         // iterating over all food items in xml reqDocument
                         for (FoodItem food : foodItems) {
 
-                            itemId = String.valueOf(food.getId());
+                            localFoodId = String.valueOf(food.getId());
                             String localFoodName = food.getName();
                             String localFoodCategory = food.getCategory();
 
@@ -107,22 +109,38 @@ public class FoodResourceServer {
                                 LOG.info("Food item already exists");
                                 doesFoodExists = true;
 
+                                // creating FoodItemExists object and marshalling it into string
+                                FoodItemExists foodExists = new FoodItemExists();
+                                List<Integer> existIdsList = new ArrayList<>();
+                                existIdsList.add(Integer.valueOf(localFoodId));
+                                foodExists.setFoodItemId(existIdsList);
+
+                                JAXBContext existsContext = JAXBContext.newInstance(FoodItemExists.class);
+                                Marshaller existsMarshall = existsContext.createMarshaller();
+                                existsMarshall.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+
+                                // Write to String
+                                StringWriter foodExistsWriter = new StringWriter();
+                                existsMarshall.marshal(foodExists, foodExistsWriter);
+                                responseXmlString = foodExistsWriter.toString();
+                                LOG.info(foodExistsWriter.toString());
+
                                 // create an FoodItemExists xml
-                                DocumentBuilder existBuilder = getDocBuilderInstance();
-                                Document foodExistsDoc = existBuilder.newDocument();
-
-                                Element itemExistsElement = foodExistsDoc.createElement("FoodItemExists");
-                                itemExistsElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
-                                foodExistsDoc.appendChild(itemExistsElement);
-
-                                Element idElement = foodExistsDoc.createElement("FoodItemId");
-                                idElement.appendChild(foodExistsDoc.createTextNode(itemId));
-                                itemExistsElement.appendChild(idElement);
-
-                                responseXmlString = getStringOfXmlDoc(foodExistsDoc);
+//                                DocumentBuilder existBuilder = getDocBuilderInstance();
+//                                Document foodExistsDoc = existBuilder.newDocument();
+//
+//                                Element itemExistsElement = foodExistsDoc.createElement("FoodItemExists");
+//                                itemExistsElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
+//                                foodExistsDoc.appendChild(itemExistsElement);
+//
+//                                Element idElement = foodExistsDoc.createElement("FoodItemId");
+//                                idElement.appendChild(foodExistsDoc.createTextNode(localFoodId));
+//                                itemExistsElement.appendChild(idElement);
+//
+//                                responseXmlString = getStringOfXmlDoc(foodExistsDoc);
                             }
                             // logic to keep track of the max id added to list
-                            int id = Integer.valueOf(itemId);
+                            int id = Integer.valueOf(localFoodId);
                             if (id > maxId) {
                                 maxId = id;
                             }
@@ -157,19 +175,35 @@ public class FoodResourceServer {
                             // Write to File
                             m.marshal(foodItemData, new File(foodXmlFile.getAbsolutePath()));
 
+                            // creating FoodItemAdded object for marshalling into string
+                            FoodItemAdded foodAdded = new FoodItemAdded();
+                            List<Integer> addedFoodList = new ArrayList<>();
+                            addedFoodList.add(nextIdToAdd);
+                            foodAdded.setFoodItemId(addedFoodList);
+                            
+                            JAXBContext existsContext = JAXBContext.newInstance(FoodItemAdded.class);
+                            Marshaller existsMarshall = existsContext.createMarshaller();
+                            existsMarshall.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+
+                            // Write to String
+                            StringWriter foodAddedWriter = new StringWriter();
+                            existsMarshall.marshal(foodAdded, foodAddedWriter);
+                            responseXmlString = foodAddedWriter.toString();
+                            LOG.info(foodAddedWriter.toString());
+
                             // creating food item added response xml
-                            DocumentBuilder newAddedBuilder = getDocBuilderInstance();
-                            Document foodAddedDoc = newAddedBuilder.newDocument();
-
-                            Element itemAddedElement = foodAddedDoc.createElement("FoodItemAdded");
-                            itemAddedElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
-                            foodAddedDoc.appendChild(itemAddedElement);
-
-                            Element idElement = foodAddedDoc.createElement("FoodItemId");
-                            idElement.appendChild(foodAddedDoc.createTextNode(String.valueOf(nextIdToAdd)));
-                            itemAddedElement.appendChild(idElement);
-
-                            responseXmlString = getStringOfXmlDoc(foodAddedDoc);
+//                            DocumentBuilder newAddedBuilder = getDocBuilderInstance();
+//                            Document foodAddedDoc = newAddedBuilder.newDocument();
+//
+//                            Element itemAddedElement = foodAddedDoc.createElement("FoodItemAdded");
+//                            itemAddedElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
+//                            foodAddedDoc.appendChild(itemAddedElement);
+//
+//                            Element idElement = foodAddedDoc.createElement("FoodItemId");
+//                            idElement.appendChild(foodAddedDoc.createTextNode(String.valueOf(nextIdToAdd)));
+//                            itemAddedElement.appendChild(idElement);
+//
+//                            responseXmlString = getStringOfXmlDoc(foodAddedDoc);
                             LOG.info("Food item added");
                         }
 
@@ -177,11 +211,11 @@ public class FoodResourceServer {
                         LOG.info(e.getMessage());
                         responseXmlString = INVALID_REQ_RESPONSE;
                     }
-                }else{
+                } else {
                     responseXmlString = INVALID_REQ_RESPONSE;
                 }
 
-            } else if (root.equals(GET_FOOD)) {
+            } else if (requestRoot.equals(GET_FOOD)) {
                 LOG.info("Get food section");
 
                 // parse the stored xml file to check if the food item exists or not

@@ -19,13 +19,13 @@ public class FoodItem {
     String name;
     String description;
     String category;
-    float price;
+    String price;
 
     public FoodItem() {
 
     }
 
-    public FoodItem(int id, String name, String description, String category, String country, float price) {
+    public FoodItem(String name, String description, String category, String country, String price) {
         super();
         this.name = name;
         this.description = description;
@@ -67,11 +67,11 @@ public class FoodItem {
         this.category = category;
     }
 
-    public float getPrice() {
+    public String getPrice() {
         return price;
     }
 
-    public void setPrice(float price) {
+    public void setPrice(String price) {
         this.price = price;
     }
 

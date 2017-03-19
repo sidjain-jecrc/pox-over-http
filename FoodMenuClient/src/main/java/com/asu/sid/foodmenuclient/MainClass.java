@@ -15,19 +15,10 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
 
 /**
  *
@@ -35,7 +26,7 @@ import org.w3c.dom.Document;
  */
 public class MainClass {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MainClass.class);
+    private static final Logger LOG = Logger.getLogger(MainClass.class.getName());
     private static String requestXML = null;
 
     public static void main(String[] args) {
@@ -54,7 +45,7 @@ public class MainClass {
                 String name = null;
                 String desciption = null;
                 String category = null;
-                float price = 0.0f;
+                String price = null;
 
                 // Add food item choice
                 if ("add".equalsIgnoreCase(choice) || choice.equalsIgnoreCase("a")) {
@@ -68,7 +59,7 @@ public class MainClass {
                     System.out.print("Category: ");
                     category = br.readLine();
                     System.out.print("Price: ");
-                    price = Float.valueOf(br.readLine());
+                    price = br.readLine();
 
                     // creating NewFoodItems object and marshalling it into xml string
                     NewFoodItems newFoodItems = new NewFoodItems();
@@ -80,19 +71,14 @@ public class MainClass {
                     newFood.setPrice(price);
                     newFoodItems.setFoodItem(newFood);
 
-                    JAXBContext jaxbContext = JAXBContext.newInstance(NewFoodItems.class);
-                    Marshaller newFoodMarshall = jaxbContext.createMarshaller();
-                    newFoodMarshall.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-
-                    // Write to xml string
-                    StringWriter newFoodWriter = new StringWriter();
-                    newFoodMarshall.marshal(newFoodItems, newFoodWriter);
-                    requestXML = newFoodWriter.toString();
-                    System.out.println("-----> Request is: " + newFoodWriter.toString());
+                    requestXML = generateXmlString(NewFoodItems.class, newFoodItems);
+                    System.out.println("-----Request------");
+                    System.out.println(requestXML);
 
                     FoodResourceClient foodClient = new FoodResourceClient();
                     String responseMessage = foodClient.addOrGetFoodItem(requestXML);
-                    System.out.println("-----> Response is: " + responseMessage);
+                    System.out.println("-----Response------");
+                    System.out.println(responseMessage);
 
                 } else if ("get".equalsIgnoreCase(choice) || choice.equalsIgnoreCase("g")) {
 
@@ -101,28 +87,23 @@ public class MainClass {
 
                     // creating SelectedFoodItems object and marshalling it into xml string
                     SelectedFoodItems selectedFoodItems = new SelectedFoodItems();
-                    List<Integer> selectedItemList = new ArrayList<>();
+                    List<String> selectedItemList = new ArrayList<>();
                     for (int index = 0; index < itemToGet; index++) {
                         System.out.print("Enter food item id: ");
-                        int foodID = Integer.valueOf(br.readLine());
+                        String foodID = br.readLine();
                         selectedItemList.add(foodID);
                     }
                     selectedFoodItems.setFoodItemId(selectedItemList);
-                    
-                    JAXBContext jaxbContext = JAXBContext.newInstance(SelectedFoodItems.class);
-                    Marshaller selectedFoodMarshall = jaxbContext.createMarshaller();
-                    selectedFoodMarshall.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
-                    // Write to xml string
-                    StringWriter selectedFoodWriter = new StringWriter();
-                    selectedFoodMarshall.marshal(selectedFoodItems, selectedFoodWriter);
-                    requestXML = selectedFoodWriter.toString();
-                    System.out.println("-----> Request is: " + requestXML);
+                    requestXML = generateXmlString(SelectedFoodItems.class, selectedFoodItems);
+                    System.out.println("-----Request------");
+                    System.out.println(requestXML);
 
                     // sending the request through food resource client
                     FoodResourceClient foodClient = new FoodResourceClient();
                     String responseMessage = foodClient.addOrGetFoodItem(requestXML);
-                    System.out.println("-----> Response is: " + responseMessage);
+                    System.out.println("-----Response------");
+                    System.out.println(responseMessage);
                 }
 
                 System.out.println("Would you like to continue? (Y|N): ");
@@ -132,32 +113,41 @@ public class MainClass {
                 }
             }
         } catch (IOException e) {
-            System.out.println("IO Exception: " + e);
-        } catch (JAXBException ex) {
-            java.util.logging.Logger.getLogger(MainClass.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, e.getMessage());
         } finally {
             if (br != null) {
                 try {
                     br.close();
                 } catch (IOException e) {
-                    LOG.error(e.getMessage());
+                    LOG.log(Level.SEVERE, e.getMessage());
                 }
             }
         }
         System.out.println("------------------Ending Client Application----------------------");
     }
 
-    private static String xmlDocToStringConverter(Document foodDoc) {
+    private static String generateXmlString(Class instance, Object object) {
         String xmlString = null;
+        JAXBContext jaxbContext;
+        Marshaller marsh;
         try {
-            TransformerFactory tf = TransformerFactory.newInstance();
-            Transformer transformer = tf.newTransformer();
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-            StringWriter writer = new StringWriter();
-            transformer.transform(new DOMSource(foodDoc), new StreamResult(writer));
-            xmlString = writer.getBuffer().toString().replaceAll("\n|\r", "");
-        } catch (TransformerException ex) {
-            LOG.error(ex.getMessage());
+            jaxbContext = JAXBContext.newInstance(instance);
+            marsh = jaxbContext.createMarshaller();
+            marsh.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+
+            // Write to xml string
+            StringWriter stringWriter = new StringWriter();
+            if (object instanceof SelectedFoodItems) {
+                SelectedFoodItems selectedItem = (SelectedFoodItems) object;
+                marsh.marshal(selectedItem, stringWriter);
+            } else if (object instanceof NewFoodItems) {
+                NewFoodItems newItem = (NewFoodItems) object;
+                marsh.marshal(newItem, stringWriter);
+            }
+            xmlString = stringWriter.toString();
+
+        } catch (JAXBException ex) {
+            LOG.log(Level.SEVERE, ex.getMessage());
         }
         return xmlString;
     }

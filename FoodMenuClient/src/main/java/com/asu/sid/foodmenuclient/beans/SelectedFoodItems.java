@@ -18,12 +18,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SelectedFoodItems {
     
     private String xmlns = "http://cse564.asu.edu/PoxAssignment";
-    private List<Integer> foodItemId;
+    private List<String> foodItemId;
 
     public SelectedFoodItems() {
     }
 
-    public SelectedFoodItems(List<Integer> foodItemId) {
+    public SelectedFoodItems(List<String> foodItemId) {
         this.foodItemId = foodItemId;
     }
     
@@ -37,11 +37,11 @@ public class SelectedFoodItems {
     }
 
     @XmlElement(name = "FoodItemId")
-    public List<Integer> getFoodItemId() {
+    public List<String> getFoodItemId() {
         return foodItemId;
     }
 
-    public void setFoodItemId(List<Integer> foodItemId) {
+    public void setFoodItemId(List<String> foodItemId) {
         this.foodItemId = foodItemId;
     }    
     

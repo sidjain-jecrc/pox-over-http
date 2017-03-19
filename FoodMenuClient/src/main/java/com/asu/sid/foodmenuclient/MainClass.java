@@ -5,13 +5,19 @@
  */
 package com.asu.sid.foodmenuclient;
 
+import com.asu.sid.foodmenuclient.beans.FoodItem;
+import com.asu.sid.foodmenuclient.beans.NewFoodItems;
+import com.asu.sid.foodmenuclient.beans.SelectedFoodItems;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
-import org.w3c.dom.Element;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -48,20 +54,10 @@ public class MainClass {
                 String name = null;
                 String desciption = null;
                 String category = null;
-                String price = null;
+                float price = 0.0f;
 
                 // Add food item choice
-                if ("add".equalsIgnoreCase(choice)) {
-
-                    // create request string once the user has entered choice and food item information
-                    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-
-                    // creating root element for new food items request
-                    Document addFoodDoc = docBuilder.newDocument();
-                    Element rootElement = addFoodDoc.createElement("NewFoodItems");
-                    addFoodDoc.appendChild(rootElement);
-                    rootElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
+                if ("add".equalsIgnoreCase(choice) || choice.equalsIgnoreCase("a")) {
 
                     System.out.print("Country: ");
                     country = br.readLine();
@@ -72,66 +68,61 @@ public class MainClass {
                     System.out.print("Category: ");
                     category = br.readLine();
                     System.out.print("Price: ");
-                    price = br.readLine();
+                    price = Float.valueOf(br.readLine());
 
-                    Element foodItem = addFoodDoc.createElement("FoodItem");
-                    rootElement.appendChild(foodItem);
-                    foodItem.setAttribute("country", country);
+                    // creating NewFoodItems object and marshalling it into xml string
+                    NewFoodItems newFoodItems = new NewFoodItems();
+                    FoodItem newFood = new FoodItem();
+                    newFood.setCountry(country);
+                    newFood.setName(name);
+                    newFood.setDescription(desciption);
+                    newFood.setCategory(category);
+                    newFood.setPrice(price);
+                    newFoodItems.setFoodItem(newFood);
 
-                    Element foodName = addFoodDoc.createElement("name");
-                    foodName.appendChild(addFoodDoc.createTextNode(name));
-                    foodItem.appendChild(foodName);
+                    JAXBContext jaxbContext = JAXBContext.newInstance(NewFoodItems.class);
+                    Marshaller newFoodMarshall = jaxbContext.createMarshaller();
+                    newFoodMarshall.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
-                    Element foodDesc = addFoodDoc.createElement("description");
-                    foodDesc.appendChild(addFoodDoc.createTextNode(desciption));
-                    foodItem.appendChild(foodDesc);
+                    // Write to xml string
+                    StringWriter newFoodWriter = new StringWriter();
+                    newFoodMarshall.marshal(newFoodItems, newFoodWriter);
+                    requestXML = newFoodWriter.toString();
+                    System.out.println("-----> Request is: " + newFoodWriter.toString());
 
-                    Element foodCategory = addFoodDoc.createElement("category");
-                    foodCategory.appendChild(addFoodDoc.createTextNode(category));
-                    foodItem.appendChild(foodCategory);
-
-                    Element foodPrice = addFoodDoc.createElement("price");
-                    foodPrice.appendChild(addFoodDoc.createTextNode(price));
-                    foodItem.appendChild(foodPrice);
-
-                    requestXML = xmlDocToStringConverter(addFoodDoc);
-                    System.out.println(requestXML);
-
-                    // sending the request through food resource client
                     FoodResourceClient foodClient = new FoodResourceClient();
                     String responseMessage = foodClient.addOrGetFoodItem(requestXML);
-                    System.out.println("Response is: " + responseMessage);
+                    System.out.println("-----> Response is: " + responseMessage);
 
-                } else if ("get".equalsIgnoreCase(choice)) {
+                } else if ("get".equalsIgnoreCase(choice) || choice.equalsIgnoreCase("g")) {
 
                     System.out.print("How many items do you want to retrieve: ");
                     int itemToGet = Integer.valueOf(br.readLine());
 
-                    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-
-                    // creating root element for new food items request
-                    Document getFoodDoc = docBuilder.newDocument();
-                    Element rootElement = getFoodDoc.createElement("SelectedFoodItems");
-                    getFoodDoc.appendChild(rootElement);
-                    rootElement.setAttribute("xmlns", "http://cse564.asu.edu/PoxAssignment");
-
+                    // creating SelectedFoodItems object and marshalling it into xml string
+                    SelectedFoodItems selectedFoodItems = new SelectedFoodItems();
+                    List<Integer> selectedItemList = new ArrayList<>();
                     for (int index = 0; index < itemToGet; index++) {
                         System.out.print("Enter food item id: ");
-                        String foodID = br.readLine();
-
-                        Element foodItemId = getFoodDoc.createElement("FoodItemId");
-                        foodItemId.appendChild(getFoodDoc.createTextNode(foodID));
-                        rootElement.appendChild(foodItemId);
+                        int foodID = Integer.valueOf(br.readLine());
+                        selectedItemList.add(foodID);
                     }
+                    selectedFoodItems.setFoodItemId(selectedItemList);
+                    
+                    JAXBContext jaxbContext = JAXBContext.newInstance(SelectedFoodItems.class);
+                    Marshaller selectedFoodMarshall = jaxbContext.createMarshaller();
+                    selectedFoodMarshall.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
-                    requestXML = xmlDocToStringConverter(getFoodDoc);
-                    System.out.println(requestXML);
+                    // Write to xml string
+                    StringWriter selectedFoodWriter = new StringWriter();
+                    selectedFoodMarshall.marshal(selectedFoodItems, selectedFoodWriter);
+                    requestXML = selectedFoodWriter.toString();
+                    System.out.println("-----> Request is: " + requestXML);
 
                     // sending the request through food resource client
                     FoodResourceClient foodClient = new FoodResourceClient();
                     String responseMessage = foodClient.addOrGetFoodItem(requestXML);
-                    System.out.println("The message is " + responseMessage);
+                    System.out.println("-----> Response is: " + responseMessage);
                 }
 
                 System.out.println("Would you like to continue? (Y|N): ");
@@ -141,9 +132,9 @@ public class MainClass {
                 }
             }
         } catch (IOException e) {
-           System.out.println("IO Exception: " + e);
-        } catch (ParserConfigurationException ex) {
-            System.out.println("Parser exception: " + ex);
+            System.out.println("IO Exception: " + e);
+        } catch (JAXBException ex) {
+            java.util.logging.Logger.getLogger(MainClass.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             if (br != null) {
                 try {

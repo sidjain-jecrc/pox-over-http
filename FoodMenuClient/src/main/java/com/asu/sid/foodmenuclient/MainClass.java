@@ -106,7 +106,7 @@ public class MainClass {
                     System.out.println(responseMessage);
                 }
 
-                System.out.println("Would you like to continue? (Y|N): ");
+                System.out.print("Would you like to continue? (Y|N): ");
                 String exitChoice = br.readLine();
                 if (exitChoice.equalsIgnoreCase("N") || exitChoice.equalsIgnoreCase("No")) {
                     break;

@@ -4,7 +4,7 @@
 
 In this application, we have a FoodItemData.xml containing information of a food item in an xml format. 
 
-The objective was to create a client-server application that user single URI and HTTP verb(post) to "add" or "get" food items from server.  
+First level of Richardson Maturity Model - The objective was to create a client-server application that uses single URI and HTTP verb(post) to "add" or "get" food items from server.  
 
 Development IDE - Netbeans 8.1
 

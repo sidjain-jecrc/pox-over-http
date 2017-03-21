@@ -189,9 +189,7 @@ public class FoodResourceServer {
                         int reqFoodId = 0;
 
                         if (subList != null && subList.getLength() > 0) {
-                            reqFoodId = Integer.valueOf(subList.item(0).getNodeValue());
-                            
-                            
+                            reqFoodId = Integer.valueOf(subList.item(0).getNodeValue());                           
                         } else {
                             responseXmlString = INVALID_REQ_RESPONSE;
                             break;
